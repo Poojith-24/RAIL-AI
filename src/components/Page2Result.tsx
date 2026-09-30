@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { PredictionResult } from '../types';
 import { RouteHistoricalTrends } from './RouteHistoricalTrends';
-import { TrainScheduleAndRoute } from './TrainScheduleAndRoute';
 import { RealTimeNotificationToggle } from './RealTimeNotificationToggle';
 import { useLanguage } from '../context/LanguageContext';
 import {
@@ -84,7 +83,7 @@ export const Page2Result: React.FC<Page2ResultProps> = ({
 ━━━━━━━━━━━━━━━━━━━━
 Check live on RailAI`;
 
-  const whatsAppUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareMessage)}`;
+  const whatsAppUrl = `https://wa.me/?text=${encodeURIComponent(shareMessage)}`;
 
   const handleCopy = () => {
     if (navigator.clipboard) {
@@ -584,15 +583,6 @@ Check live on RailAI`;
           </div>
         </div>
 
-        {/* Train Schedule & Timing and Key Route & Stops */}
-        {prediction.schedule && (
-          <TrainScheduleAndRoute
-            schedule={prediction.schedule}
-            boardingStationCode={pnrData.boardingStationCode || pnrData.fromStationCode}
-            destinationStationCode={pnrData.destinationStationCode || pnrData.toStationCode}
-          />
-        )}
-
         {/* NEW SECTION: Historical Confirmation Probability Trends for this Specific Train Route */}
         {prediction.routeTrends && (
           <RouteHistoricalTrends
@@ -711,17 +701,6 @@ Check live on RailAI`;
           </div>
         </div>
 
-        {/* Bottom Pagination */}
-        <div className="text-center pt-4 pb-8">
-          <span className="text-[11px] font-mono tracking-widest text-slate-400 uppercase font-semibold block mb-2">
-            PAGE 2 OF 2
-          </span>
-          <div className="flex items-center justify-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-slate-300" />
-            <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 shadow-sm shadow-indigo-600/50" />
-            <span className="w-2 h-2 rounded-full bg-slate-300" />
-          </div>
-        </div>
       </div>
     </div>
   );

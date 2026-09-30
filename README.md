@@ -44,6 +44,7 @@ RailPredict AI is designed around strict legal, security, and ethical standards:
 - **Configurable Provider**:
   - In production, set `RAILWAY_API_BASE_URL` and `RAILWAY_API_KEY` to connect to an authorized railway data partner.
   - In development or when credentials are not supplied, the system operates in **Demo Mode**, clearly labeled with `Data Source: DEMO`.
+  - Demo Mode returns predictions only for the 30 curated sample PNRs, including 10 additional Tamil Nadu routes with separate origin, boarding, alighting, and destination stations. Other valid-format PNRs display an "Incorrect PNR" error; configure an authorized provider for live lookups.
 
 ---
 

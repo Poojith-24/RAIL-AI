@@ -106,7 +106,7 @@ export const Page1Home: React.FC<Page1HomeProps> = ({
             </div>
 
             {(validationError || searchError) && (
-              <p className="text-xs text-rose-400 text-left font-medium pl-1">
+              <p role="alert" className="text-xs text-rose-400 text-left font-medium pl-1">
                 {validationError || searchError}
               </p>
             )}

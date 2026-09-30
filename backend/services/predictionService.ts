@@ -9,6 +9,34 @@ import { getTrainScheduleAndStops } from './trainScheduleService.js';
 const mainModel = new GradientBoostedEnsemble();
 const baselineModel = new LogisticRegressionBaseline();
 
+export function calculateDemoProbability(features: ReturnType<typeof extractFeaturesFromPNR>): number {
+  const position = features.current_position;
+  const baseByStatus = {
+    CNF: 100,
+    RAC: 92,
+    GNWL: 80,
+    RLWL: 62,
+    PQWL: 52,
+    CKWL: 38,
+    OTHER: 50
+  } as const;
+  const positionPenalty = features.waitlist_type === 'RAC' ? 2.2 : 1.05;
+  const quotaPenalty = features.quota === 'TQ' ? 12 : features.quota === 'PT' ? 16 : features.quota === 'PQ' ? 5 : 0;
+  const probability =
+    baseByStatus[features.waitlist_type] -
+    position * positionPenalty +
+    Math.min(16, features.position_improvement * 0.2) +
+    Math.min(6, features.days_to_journey * 0.4) +
+    (features.historical_train_confirmation_rate - 0.69) * 20 +
+    (features.historical_route_confirmation_rate - 0.68) * 20 +
+    (features.historical_class_confirmation_rate - 0.7) * 10 -
+    quotaPenalty -
+    (features.is_weekend ? 2 : 0) -
+    (features.is_festival_period ? 4 : 0);
+
+  return Math.round(Math.min(97, Math.max(5, probability)) * 10) / 10;
+}
+
 export async function processPNRPrediction(rawPnr: string, forceDemo = false): Promise<PredictionResult> {
   // Step 1: Validate PNR
   const validation = validatePNRFormat(rawPnr);
@@ -58,7 +86,12 @@ export async function processPNRPrediction(rawPnr: string, forceDemo = false): P
     const baselineResult = baselineModel.predict(encoded.vector);
 
     baselineProb = Math.round(baselineResult.calibratedProbability * 1000) / 1000;
-    const probabilityDecimal = ensembleResult.calibratedProbability;
+    const probabilityDecimal = pnrData.dataSource === 'DEMO'
+      ? calculateDemoProbability(rawFeatures) / 100
+      : ensembleResult.calibratedProbability;
+    if (pnrData.dataSource === 'DEMO') {
+      baselineProb = probabilityDecimal;
+    }
     finalProbabilityPercent = Math.round(probabilityDecimal * 1000) / 10; // e.g. 78.4
 
     if (finalProbabilityPercent >= 70) {
@@ -173,13 +206,19 @@ export async function processPNRPrediction(rawPnr: string, forceDemo = false): P
   // Class benchmarks tailored strictly to the actual train type
   const trainNameLower = pnrData.trainName.toLowerCase();
   const isVandeBharat = trainNameLower.includes('vande bharat') || ['20608', '20643', '20901', '22436', '20607', '20644'].includes(pnrData.trainNumber);
+  const isLalbagh = trainNameLower.includes('lalbagh') || ['12607', '12608'].includes(pnrData.trainNumber);
   const isShatabdi = trainNameLower.includes('shatabdi') && !trainNameLower.includes('jan');
   const isJanShatabdi = trainNameLower.includes('jan shatabdi');
   const isRajdhani = trainNameLower.includes('rajdhani') || trainNameLower.includes('tejas');
 
   let classList: Array<{ classCode: string; className: string; clearanceRate: number; typicalWlThreshold: number }>;
 
-  if (isVandeBharat) {
+  if (isLalbagh) {
+    classList = [
+      { classCode: '2S', className: 'Second Sitting', clearanceRate: 72, typicalWlThreshold: 45 },
+      { classCode: 'CC', className: 'AC Chair Car', clearanceRate: 80, typicalWlThreshold: 30 }
+    ];
+  } else if (isVandeBharat) {
     // Vande Bharat Express operates strictly with AC Chair Car (CC) and Executive Class (EC)
     classList = [
       { classCode: 'CC', className: 'AC Chair Car', clearanceRate: 86, typicalWlThreshold: 35 },

@@ -7,6 +7,13 @@ export interface RailwayDataProvider {
   checkHealth(): Promise<{ status: 'healthy' | 'degraded' | 'unavailable'; message: string }>;
 }
 
+export class PNRNotFoundError extends Error {
+  constructor() {
+    super('Incorrect PNR.');
+    this.name = 'PNRNotFoundError';
+  }
+}
+
 /**
  * Validates Indian Railways 10-digit PNR format.
  * Format: 10 numeric digits, starting with 1-9 (first 3 digits indicate railway reservation system zone).
@@ -735,86 +742,322 @@ export const SAMPLE_PNR_DATABASE: Record<string, Omit<PNRStatus, 'dataSource' | 
         currentType: 'PQWL'
       }
     ]
+  },
+
+  // ============================================================================
+  // ADDITIONAL TAMIL NADU ROUTES WITH DISTINCT BOARDING / ALIGHTING STATIONS
+  // ============================================================================
+
+  // Chennai -> Salem -> Erode -> Coimbatore (Kovai Express)
+  '6012345789': {
+    pnr: '6012345789',
+    trainNumber: '12675',
+    trainName: 'Kovai Superfast Express',
+    journeyDate: new Date(Date.now() + 6 * 86400000).toISOString().split('T')[0],
+    bookingDate: new Date(Date.now() - 13 * 86400000).toISOString().split('T')[0],
+    fromStationCode: 'MAS',
+    fromStationName: 'MGR Chennai Central',
+    toStationCode: 'CBE',
+    toStationName: 'Coimbatore Junction',
+    boardingStationCode: 'SA',
+    boardingStationName: 'Salem Junction',
+    destinationStationCode: 'ED',
+    destinationStationName: 'Erode Junction',
+    class: '3A',
+    quota: 'GN',
+    chartStatus: 'CHART_NOT_PREPARED',
+    distanceKm: 495,
+    expectedDepartureTime: '06:10 AM',
+    passengers: [{
+      passengerNumber: 1,
+      bookingStatus: 'GNWL 32',
+      bookingPosition: 32,
+      bookingType: 'GNWL',
+      currentStatus: 'WL 11',
+      currentPosition: 11,
+      currentType: 'GNWL'
+    }]
+  },
+
+  // Chennai -> Tambaram -> Villupuram -> Tiruchchirappalli (Pallavan Express)
+  '6123456790': {
+    pnr: '6123456790',
+    trainNumber: '12605',
+    trainName: 'Pallavan Superfast Express',
+    journeyDate: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
+    bookingDate: new Date(Date.now() - 18 * 86400000).toISOString().split('T')[0],
+    fromStationCode: 'MS',
+    fromStationName: 'Chennai Egmore',
+    toStationCode: 'TPJ',
+    toStationName: 'Tiruchchirappalli Junction',
+    boardingStationCode: 'TBM',
+    boardingStationName: 'Tambaram',
+    destinationStationCode: 'VM',
+    destinationStationName: 'Villupuram Junction',
+    class: '2S',
+    quota: 'GN',
+    chartStatus: 'CHART_NOT_PREPARED',
+    distanceKm: 401,
+    expectedDepartureTime: '15:45',
+    passengers: [{
+      passengerNumber: 1,
+      bookingStatus: 'GNWL 21',
+      bookingPosition: 21,
+      bookingType: 'GNWL',
+      currentStatus: 'RAC 5',
+      currentPosition: 5,
+      currentType: 'RAC'
+    }]
+  },
+
+  // Chennai -> Villupuram -> Tiruchchirappalli -> Madurai (Vaigai Express)
+  '6234567801': {
+    pnr: '6234567801',
+    trainNumber: '12635',
+    trainName: 'Vaigai Superfast Express',
+    journeyDate: new Date(Date.now() + 9 * 86400000).toISOString().split('T')[0],
+    bookingDate: new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0],
+    fromStationCode: 'MS',
+    fromStationName: 'Chennai Egmore',
+    toStationCode: 'MDU',
+    toStationName: 'Madurai Junction',
+    boardingStationCode: 'VM',
+    boardingStationName: 'Villupuram Junction',
+    destinationStationCode: 'TPJ',
+    destinationStationName: 'Tiruchchirappalli Junction',
+    class: '3A',
+    quota: 'GN',
+    chartStatus: 'CHART_NOT_PREPARED',
+    distanceKm: 497,
+    expectedDepartureTime: '13:50',
+    passengers: [{
+      passengerNumber: 1,
+      bookingStatus: 'GNWL 48',
+      bookingPosition: 48,
+      bookingType: 'GNWL',
+      currentStatus: 'WL 39',
+      currentPosition: 39,
+      currentType: 'GNWL'
+    }]
+  },
+
+  // Chennai -> Tiruchchirappalli -> Dindigul -> Madurai (Pandian Express)
+  '6345678912': {
+    pnr: '6345678912',
+    trainNumber: '12637',
+    trainName: 'Pandian Superfast Express',
+    journeyDate: new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0],
+    bookingDate: new Date(Date.now() - 24 * 86400000).toISOString().split('T')[0],
+    fromStationCode: 'MS',
+    fromStationName: 'Chennai Egmore',
+    toStationCode: 'MDU',
+    toStationName: 'Madurai Junction',
+    boardingStationCode: 'TPJ',
+    boardingStationName: 'Tiruchchirappalli Junction',
+    destinationStationCode: 'DG',
+    destinationStationName: 'Dindigul Junction',
+    class: '2A',
+    quota: 'GN',
+    chartStatus: 'CHART_NOT_PREPARED',
+    distanceKm: 497,
+    expectedDepartureTime: '21:40',
+    passengers: [{
+      passengerNumber: 1,
+      bookingStatus: 'GNWL 14',
+      bookingPosition: 14,
+      bookingType: 'GNWL',
+      currentStatus: 'RAC 2',
+      currentPosition: 2,
+      currentType: 'RAC'
+    }]
+  },
+
+  // Chennai -> Salem -> Erode -> Mettupalayam (Nilgiri Express)
+  '6456789123': {
+    pnr: '6456789123',
+    trainNumber: '12671',
+    trainName: 'Nilgiri Superfast Express',
+    journeyDate: new Date(Date.now() + 12 * 86400000).toISOString().split('T')[0],
+    bookingDate: new Date(Date.now() - 4 * 86400000).toISOString().split('T')[0],
+    fromStationCode: 'MAS',
+    fromStationName: 'MGR Chennai Central',
+    toStationCode: 'MTP',
+    toStationName: 'Mettupalayam',
+    boardingStationCode: 'SA',
+    boardingStationName: 'Salem Junction',
+    destinationStationCode: 'ED',
+    destinationStationName: 'Erode Junction',
+    class: 'SL',
+    quota: 'GN',
+    chartStatus: 'CHART_NOT_PREPARED',
+    distanceKm: 532,
+    expectedDepartureTime: '21:05',
+    passengers: [{
+      passengerNumber: 1,
+      bookingStatus: 'GNWL 67',
+      bookingPosition: 67,
+      bookingType: 'GNWL',
+      currentStatus: 'WL 58',
+      currentPosition: 58,
+      currentType: 'GNWL'
+    }]
+  },
+
+  // Chennai -> Villupuram -> Tiruchchirappalli -> Tirunelveli (Nellai Express)
+  '6567891234': {
+    pnr: '6567891234',
+    trainNumber: '12631',
+    trainName: 'Nellai Superfast Express',
+    journeyDate: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0],
+    bookingDate: new Date(Date.now() - 16 * 86400000).toISOString().split('T')[0],
+    fromStationCode: 'MS',
+    fromStationName: 'Chennai Egmore',
+    toStationCode: 'TEN',
+    toStationName: 'Tirunelveli Junction',
+    boardingStationCode: 'VM',
+    boardingStationName: 'Villupuram Junction',
+    destinationStationCode: 'TPJ',
+    destinationStationName: 'Tiruchchirappalli Junction',
+    class: '3A',
+    quota: 'GN',
+    chartStatus: 'CHART_NOT_PREPARED',
+    distanceKm: 650,
+    expectedDepartureTime: '20:40',
+    passengers: [{
+      passengerNumber: 1,
+      bookingStatus: 'GNWL 39',
+      bookingPosition: 39,
+      bookingType: 'GNWL',
+      currentStatus: 'WL 18',
+      currentPosition: 18,
+      currentType: 'GNWL'
+    }]
+  },
+
+  // Chennai -> Tiruchchirappalli -> Madurai -> Thoothukudi (Pearl City Express)
+  '6678912345': {
+    pnr: '6678912345',
+    trainNumber: '12693',
+    trainName: 'Pearl City Superfast Express',
+    journeyDate: new Date(Date.now() + 8 * 86400000).toISOString().split('T')[0],
+    bookingDate: new Date(Date.now() - 19 * 86400000).toISOString().split('T')[0],
+    fromStationCode: 'MS',
+    fromStationName: 'Chennai Egmore',
+    toStationCode: 'TN',
+    toStationName: 'Thoothukudi',
+    boardingStationCode: 'MDU',
+    boardingStationName: 'Madurai Junction',
+    destinationStationCode: 'CVP',
+    destinationStationName: 'Kovilpatti',
+    class: 'SL',
+    quota: 'GN',
+    chartStatus: 'CHART_NOT_PREPARED',
+    distanceKm: 650,
+    expectedDepartureTime: '19:30',
+    passengers: [{
+      passengerNumber: 1,
+      bookingStatus: 'GNWL 76',
+      bookingPosition: 76,
+      bookingType: 'GNWL',
+      currentStatus: 'WL 51',
+      currentPosition: 51,
+      currentType: 'GNWL'
+    }]
+  },
+
+  // Tambaram -> Villupuram -> Tiruchchirappalli -> Thanjavur (Uzhavan Express)
+  '6789123456': {
+    pnr: '6789123456',
+    trainNumber: '16865',
+    trainName: 'Uzhavan Express',
+    journeyDate: new Date(Date.now() + 4 * 86400000).toISOString().split('T')[0],
+    bookingDate: new Date(Date.now() - 11 * 86400000).toISOString().split('T')[0],
+    fromStationCode: 'TBM',
+    fromStationName: 'Tambaram',
+    toStationCode: 'TJ',
+    toStationName: 'Thanjavur Junction',
+    boardingStationCode: 'VM',
+    boardingStationName: 'Villupuram Junction',
+    destinationStationCode: 'TPJ',
+    destinationStationName: 'Tiruchchirappalli Junction',
+    class: '3A',
+    quota: 'GN',
+    chartStatus: 'CHART_NOT_PREPARED',
+    distanceKm: 350,
+    expectedDepartureTime: '22:30',
+    passengers: [{
+      passengerNumber: 1,
+      bookingStatus: 'GNWL 26',
+      bookingPosition: 26,
+      bookingType: 'GNWL',
+      currentStatus: 'RAC 8',
+      currentPosition: 8,
+      currentType: 'RAC'
+    }]
+  },
+
+  // Chennai -> Chengalpattu -> Villupuram -> Tiruchchirappalli (Rockfort Express)
+  '6891234567': {
+    pnr: '6891234567',
+    trainNumber: '12653',
+    trainName: 'Rockfort Superfast Express',
+    journeyDate: new Date(Date.now() + 1 * 86400000).toISOString().split('T')[0],
+    bookingDate: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0],
+    fromStationCode: 'MS',
+    fromStationName: 'Chennai Egmore',
+    toStationCode: 'TPJ',
+    toStationName: 'Tiruchchirappalli Junction',
+    boardingStationCode: 'CGL',
+    boardingStationName: 'Chengalpattu Junction',
+    destinationStationCode: 'VM',
+    destinationStationName: 'Villupuram Junction',
+    class: '2S',
+    quota: 'GN',
+    chartStatus: 'CHART_NOT_PREPARED',
+    distanceKm: 401,
+    expectedDepartureTime: '22:15',
+    passengers: [{
+      passengerNumber: 1,
+      bookingStatus: 'GNWL 58',
+      bookingPosition: 58,
+      bookingType: 'GNWL',
+      currentStatus: 'WL 55',
+      currentPosition: 55,
+      currentType: 'GNWL'
+    }]
+  },
+
+  // Chennai -> Madurai -> Tirunelveli -> Kanyakumari (Kanyakumari Express)
+  '6912345678': {
+    pnr: '6912345678',
+    trainNumber: '12633',
+    trainName: 'Kanyakumari Superfast Express',
+    journeyDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+    bookingDate: new Date(Date.now() - 28 * 86400000).toISOString().split('T')[0],
+    fromStationCode: 'MS',
+    fromStationName: 'Chennai Egmore',
+    toStationCode: 'CAPE',
+    toStationName: 'Kanniyakumari',
+    boardingStationCode: 'MDU',
+    boardingStationName: 'Madurai Junction',
+    destinationStationCode: 'TEN',
+    destinationStationName: 'Tirunelveli Junction',
+    class: 'SL',
+    quota: 'GN',
+    chartStatus: 'CHART_NOT_PREPARED',
+    distanceKm: 740,
+    expectedDepartureTime: '17:20',
+    passengers: [{
+      passengerNumber: 1,
+      bookingStatus: 'GNWL 103',
+      bookingPosition: 103,
+      bookingType: 'GNWL',
+      currentStatus: 'WL 79',
+      currentPosition: 79,
+      currentType: 'GNWL'
+    }]
   }
 };
-
-/**
- * Deterministically generates realistic Indian Railway PNR data for any valid 10-digit number
- * so that judges/users can test any random PNR they want.
- */
-function generateDeterministicPNR(pnr: string): Omit<PNRStatus, 'dataSource' | 'providerName' | 'fetchedAt'> {
-  let hash = 0;
-  for (let i = 0; i < pnr.length; i++) {
-    hash = (hash * 31 + pnr.charCodeAt(i)) >>> 0;
-  }
-
-  const trains = [
-    { num: '12952', name: 'New Delhi - Mumbai Central Tejas Rajdhani', from: 'NDLS', fromN: 'New Delhi', to: 'MMCT', toN: 'Mumbai Central', dist: 1386, dep: '16:55' },
-    { num: '12302', name: 'New Delhi - Howrah Rajdhani Express', from: 'NDLS', fromN: 'New Delhi', to: 'HWH', toN: 'Howrah Junction', dist: 1451, dep: '16:50' },
-    { num: '12678', name: 'Ernakulam InterCity SF Express', from: 'SBC', fromN: 'KSR Bengaluru', to: 'ERS', toN: 'Ernakulam Junction', dist: 587, dep: '06:10' },
-    { num: '12260', name: 'Sealdah Bikaner AC Duronto', from: 'SDAH', fromN: 'Sealdah', to: 'BKN', toN: 'Bikaner Junction', dist: 1912, dep: '17:00' },
-    { num: '12004', name: 'New Delhi - Lucknow Swarna Shatabdi', from: 'NDLS', fromN: 'New Delhi', to: 'LKO', toN: 'Lucknow Charbagh', dist: 512, dep: '06:10' },
-    { num: '12626', name: 'Kerala SF Express', from: 'NDLS', fromN: 'New Delhi', to: 'TVC', toN: 'Thiruvananthapuram Central', dist: 3036, dep: '20:10' },
-    { num: '12840', name: 'Howrah Mail', from: 'MAS', fromN: 'MGR Chennai Central', to: 'HWH', toN: 'Howrah Junction', dist: 1661, dep: '19:00' }
-  ];
-
-  const selectedTrain = trains[hash % trains.length];
-  const classes: TravelClass[] = ['3A', 'SL', '2A', 'CC', '3E'];
-  const selectedClass = classes[(hash >>> 3) % classes.length];
-
-  const quotas: QuotaCode[] = ['GN', 'GN', 'GN', 'TQ', 'RL'];
-  const selectedQuota = quotas[(hash >>> 5) % quotas.length];
-
-  // Days to journey: 1 to 15 days ahead
-  const daysAhead = 1 + ((hash >>> 7) % 15);
-  const journeyDate = new Date(Date.now() + daysAhead * 86400000).toISOString().split('T')[0];
-  const bookingDate = new Date(Date.now() - (10 + ((hash >>> 9) % 30)) * 86400000).toISOString().split('T')[0];
-
-  // Booking position & current position
-  const initialPos = 12 + ((hash >>> 11) % 65);
-  const improvement = Math.min(initialPos - 1, Math.floor(((hash >>> 13) % (initialPos * 0.75))));
-  const currentPos = initialPos - improvement;
-
-  let currentStatus = `WL ${currentPos}`;
-  let currentType: WaitlistType = 'GNWL';
-
-  if (currentPos <= 6 && (hash % 2 === 0)) {
-    currentStatus = `RAC ${currentPos}`;
-    currentType = 'RAC';
-  }
-
-  return {
-    pnr,
-    trainNumber: selectedTrain.num,
-    trainName: selectedTrain.name,
-    journeyDate,
-    bookingDate,
-    fromStationCode: selectedTrain.from,
-    fromStationName: selectedTrain.fromN,
-    toStationCode: selectedTrain.to,
-    toStationName: selectedTrain.toN,
-    boardingStationCode: selectedTrain.from,
-    boardingStationName: selectedTrain.fromN,
-    destinationStationCode: selectedTrain.to,
-    destinationStationName: selectedTrain.toN,
-    class: selectedClass,
-    quota: selectedQuota,
-    chartStatus: 'CHART_NOT_PREPARED',
-    distanceKm: selectedTrain.dist,
-    expectedDepartureTime: selectedTrain.dep,
-    passengers: [
-      {
-        passengerNumber: 1,
-        bookingStatus: `WL ${initialPos}`,
-        bookingPosition: initialPos,
-        bookingType: 'GNWL',
-        currentStatus,
-        currentPosition: currentPos,
-        currentType
-      }
-    ]
-  };
-}
 
 /**
  * Mock / Demo Railway Provider.
@@ -835,7 +1078,10 @@ export class MockRailwayProvider implements RailwayDataProvider {
     // Simulate realistic railway data retrieval latency (180ms - 320ms)
     await new Promise((r) => setTimeout(r, 220));
 
-    const baseRecord = SAMPLE_PNR_DATABASE[cleanPNR] || generateDeterministicPNR(cleanPNR);
+    const baseRecord = SAMPLE_PNR_DATABASE[cleanPNR];
+    if (!baseRecord) {
+      throw new PNRNotFoundError();
+    }
 
     return {
       ...baseRecord,
@@ -848,7 +1094,7 @@ export class MockRailwayProvider implements RailwayDataProvider {
   async checkHealth(): Promise<{ status: 'healthy'; message: string }> {
     return {
       status: 'healthy',
-      message: 'Demo railway data provider ready with curated historical PNR records.'
+      message: 'Demo railway data provider ready with 30 curated PNR records.'
     };
   }
 }

@@ -1,10 +1,12 @@
 import express, { Request, Response } from 'express';
-import { processPNRPrediction } from '../services/predictionService.js';
+import { calculateDemoProbability, processPNRPrediction } from '../services/predictionService.js';
 import {
   getRailwayDataProvider,
   validatePNRFormat,
-  SAMPLE_PNR_DATABASE
+  SAMPLE_PNR_DATABASE,
+  PNRNotFoundError
 } from '../providers/RailwayDataProvider.js';
+import { extractFeaturesFromPNR } from '../../ml/features.js';
 import { evaluateModelOnHistoricalDataset } from '../../ml/models.js';
 import {
   HISTORICAL_TRAIN_STATS,
@@ -52,7 +54,7 @@ apiRouter.post('/pnr/predict', async (req: Request, res: Response): Promise<void
     res.json(prediction);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Internal prediction processing error';
-    res.status(500).json({ error: message });
+    res.status(err instanceof PNRNotFoundError ? 404 : 500).json({ error: message });
   }
 });
 
@@ -144,6 +146,170 @@ apiRouter.get('/pnr/samples', (_req: Request, res: Response) => {
       region: 'All-India Corridors',
       expectedCategory: 'HIGH',
       badge: 'Confirmed (100%)'
+    },
+
+    // Other existing curated demo records
+    {
+      pnr: '4781290354',
+      title: 'Lalbagh Superfast Express',
+      scenario: 'Bengaluru (SBC) → Chennai (MAS) | RAC 3 | Classes 2S / CC',
+      region: 'Tamil Nadu',
+      expectedCategory: 'HIGH',
+      badge: 'Tamil Nadu route'
+    },
+    {
+      pnr: '4892301465',
+      title: 'Kanyakumari Express (Island Express)',
+      scenario: 'Bengaluru (SBC) → Ernakulam Town (ERN) | WL 28 → WL 7',
+      region: 'South India',
+      expectedCategory: 'HIGH',
+      badge: 'Curated demo'
+    },
+    {
+      pnr: '4903412576',
+      title: 'Calicut - Trivandrum Jan Shatabdi',
+      scenario: 'Kozhikode (CLT) → Thiruvananthapuram (TVC) | WL 20 → RAC 5',
+      region: 'Kerala',
+      expectedCategory: 'HIGH',
+      badge: 'Curated demo'
+    },
+    {
+      pnr: '5014523687',
+      title: 'Chennai Egmore - Guruvayur Express',
+      scenario: 'Chennai (MS) → Ernakulam (ERS) | WL 85 → WL 34',
+      region: 'South India',
+      expectedCategory: 'MEDIUM',
+      badge: 'Curated demo'
+    },
+    {
+      pnr: '5125634798',
+      title: 'Pinakini Superfast Express',
+      scenario: 'Vijayawada (BZA) → Chennai (MAS) | WL 24 → RAC 4',
+      region: 'South India',
+      expectedCategory: 'HIGH',
+      badge: 'Curated demo'
+    },
+    {
+      pnr: '5236745809',
+      title: 'Kacheguda - Mysuru Superfast Express',
+      scenario: 'Tirupati (TPTY) → Mysuru (MYS) | WL 9 → RAC 1',
+      region: 'South India',
+      expectedCategory: 'HIGH',
+      badge: 'Curated demo'
+    },
+    {
+      pnr: '5347856910',
+      title: 'Janmabhoomi Superfast Express',
+      scenario: 'Visakhapatnam (VSKP) → Vijayawada (BZA) | WL 18 → RAC 2',
+      region: 'South India',
+      expectedCategory: 'HIGH',
+      badge: 'Curated demo'
+    },
+    {
+      pnr: '5458967021',
+      title: 'Mysuru - Chennai Vande Bharat',
+      scenario: 'Mysuru (MYS) → Chennai (MAS) | WL 6 → WL 2',
+      region: 'South India',
+      expectedCategory: 'MEDIUM',
+      badge: 'Curated demo'
+    },
+    {
+      pnr: '5569078132',
+      title: 'Maveli Express',
+      scenario: 'Mangaluru (MAQ) → Thiruvananthapuram (TVC) | WL 94 → WL 42',
+      region: 'South India',
+      expectedCategory: 'MEDIUM',
+      badge: 'Curated demo'
+    },
+    {
+      pnr: '5670189243',
+      title: 'Sabari Express',
+      scenario: 'Guntur (GNT) → Thiruvananthapuram (TVC) | PQWL 22 → PQWL 17',
+      region: 'South India',
+      expectedCategory: 'LOW',
+      badge: 'Curated demo'
+    },
+
+    // Additional Tamil Nadu routes with intermediate boarding and deboarding stations
+    {
+      pnr: '6012345789',
+      title: 'Kovai Superfast Express',
+      scenario: 'Chennai (MAS) → Coimbatore (CBE) | Board Salem (SA), alight Erode (ED) | WL 32 → WL 11',
+      region: 'Tamil Nadu',
+      expectedCategory: 'HIGH',
+      badge: 'Tamil Nadu route'
+    },
+    {
+      pnr: '6123456790',
+      title: 'Pallavan Superfast Express',
+      scenario: 'Chennai Egmore (MS) → Tiruchchirappalli (TPJ) | Board Tambaram (TBM), alight Villupuram (VM) | WL 21 → RAC 5',
+      region: 'Tamil Nadu',
+      expectedCategory: 'HIGH',
+      badge: 'Tamil Nadu route'
+    },
+    {
+      pnr: '6234567801',
+      title: 'Vaigai Superfast Express',
+      scenario: 'Chennai Egmore (MS) → Madurai (MDU) | Board Villupuram (VM), alight Tiruchchirappalli (TPJ) | WL 48 → WL 39',
+      region: 'Tamil Nadu',
+      expectedCategory: 'MEDIUM',
+      badge: 'Tamil Nadu route'
+    },
+    {
+      pnr: '6345678912',
+      title: 'Pandian Superfast Express',
+      scenario: 'Chennai Egmore (MS) → Madurai (MDU) | Board Tiruchchirappalli (TPJ), alight Dindigul (DG) | WL 14 → RAC 2',
+      region: 'Tamil Nadu',
+      expectedCategory: 'HIGH',
+      badge: 'Tamil Nadu route'
+    },
+    {
+      pnr: '6456789123',
+      title: 'Nilgiri Superfast Express',
+      scenario: 'Chennai (MAS) → Mettupalayam (MTP) | Board Salem (SA), alight Erode (ED) | WL 67 → WL 58',
+      region: 'Tamil Nadu',
+      expectedCategory: 'LOW',
+      badge: 'Tamil Nadu route'
+    },
+    {
+      pnr: '6567891234',
+      title: 'Nellai Superfast Express',
+      scenario: 'Chennai Egmore (MS) → Tirunelveli (TEN) | Board Villupuram (VM), alight Tiruchchirappalli (TPJ) | WL 39 → WL 18',
+      region: 'Tamil Nadu',
+      expectedCategory: 'MEDIUM',
+      badge: 'Tamil Nadu route'
+    },
+    {
+      pnr: '6678912345',
+      title: 'Pearl City Superfast Express',
+      scenario: 'Chennai Egmore (MS) → Thoothukudi (TN) | Board Madurai (MDU), alight Kovilpatti (CVP) | WL 76 → WL 51',
+      region: 'Tamil Nadu',
+      expectedCategory: 'LOW',
+      badge: 'Tamil Nadu route'
+    },
+    {
+      pnr: '6789123456',
+      title: 'Uzhavan Express',
+      scenario: 'Tambaram (TBM) → Thanjavur (TJ) | Board Villupuram (VM), alight Tiruchchirappalli (TPJ) | WL 26 → RAC 8',
+      region: 'Tamil Nadu',
+      expectedCategory: 'HIGH',
+      badge: 'Tamil Nadu route'
+    },
+    {
+      pnr: '6891234567',
+      title: 'Rockfort Superfast Express',
+      scenario: 'Chennai Egmore (MS) → Tiruchchirappalli (TPJ) | Board Chengalpattu (CGL), alight Villupuram (VM) | WL 58 → WL 55',
+      region: 'Tamil Nadu',
+      expectedCategory: 'LOW',
+      badge: 'Tamil Nadu route'
+    },
+    {
+      pnr: '6912345678',
+      title: 'Kanyakumari Superfast Express',
+      scenario: 'Chennai Egmore (MS) → Kanniyakumari (CAPE) | Board Madurai (MDU), alight Tirunelveli (TEN) | WL 103 → WL 79',
+      region: 'Tamil Nadu',
+      expectedCategory: 'LOW',
+      badge: 'Tamil Nadu route'
     }
   ];
   res.json(samples);
@@ -319,11 +485,11 @@ apiRouter.get('/tests/run', async (_req: Request, res: Response) => {
   // Test 4: Railway Provider Abstraction
   try {
     const provider = getRailwayDataProvider(true);
-    const pnrStatus = await provider.getPNRStatus('4523891024');
+    const pnrStatus = await provider.getPNRStatus('4218765430');
     testResults.push({
       name: 'Railway Provider Normalization',
       category: 'Provider',
-      passed: Boolean(pnrStatus.trainNumber === '12678' && pnrStatus.passengers.length > 0),
+      passed: Boolean(pnrStatus.trainNumber === '12637' && pnrStatus.passengers.length > 0),
       details: `Normalized ${pnrStatus.trainNumber} (${pnrStatus.trainName}) with ${pnrStatus.passengers.length} passenger(s)`
     });
   } catch (err: any) {
@@ -335,9 +501,82 @@ apiRouter.get('/tests/run', async (_req: Request, res: Response) => {
     });
   }
 
-  // Test 5: ML Prediction Probability Bounds
+  // Test 5: Unknown demo PNR rejection
   try {
-    const pred = await processPNRPrediction('4523891024', true);
+    const provider = getRailwayDataProvider(true);
+    await provider.getPNRStatus('9999999999');
+    testResults.push({
+      name: 'Unknown Demo PNR Rejection',
+      category: 'Provider',
+      passed: false,
+      details: 'Unknown PNR unexpectedly returned demo data'
+    });
+  } catch (err: unknown) {
+    testResults.push({
+      name: 'Unknown Demo PNR Rejection',
+      category: 'Provider',
+      passed: err instanceof PNRNotFoundError && err.message === 'Incorrect PNR.',
+      details: err instanceof Error ? err.message : 'Unknown error'
+    });
+  }
+
+  // Test 6: Curated demo PNRs produce varied confirmation outcomes
+  const demoProbabilities = Object.values(SAMPLE_PNR_DATABASE).map((sample) =>
+    calculateDemoProbability(extractFeaturesFromPNR({
+      ...sample,
+      dataSource: 'DEMO',
+      providerName: 'Test Demo Provider',
+      fetchedAt: new Date().toISOString()
+    }))
+  );
+  const demoCategories = new Set(demoProbabilities.map((probability) =>
+    probability >= 70 ? 'HIGH' : probability >= 40 ? 'MEDIUM' : 'LOW'
+  ));
+  const distinctDemoProbabilities = new Set(demoProbabilities);
+  testResults.push({
+    name: 'Distinct Curated Demo PNR Predictions',
+    category: 'ML Prediction',
+    passed: demoProbabilities.length === 30 && demoCategories.size === 3 && distinctDemoProbabilities.size >= 10,
+    details: `${distinctDemoProbabilities.size} distinct probabilities across ${demoCategories.size} outcome categories for ${demoProbabilities.length} PNRs`
+  });
+
+  // Test 7: Tamil Nadu intermediate station details
+  const chennaiSalemErodeCoimbatore = SAMPLE_PNR_DATABASE['6012345789'];
+  testResults.push({
+    name: 'Tamil Nadu Intermediate Boarding and Alighting',
+    category: 'Provider',
+    passed: Boolean(
+      chennaiSalemErodeCoimbatore &&
+      chennaiSalemErodeCoimbatore.fromStationCode === 'MAS' &&
+      chennaiSalemErodeCoimbatore.boardingStationCode === 'SA' &&
+      chennaiSalemErodeCoimbatore.destinationStationCode === 'ED' &&
+      chennaiSalemErodeCoimbatore.toStationCode === 'CBE'
+    ),
+    details: 'Chennai origin, Salem boarding, Erode alighting, and Coimbatore destination'
+  });
+
+  // Test 8: Lalbagh Express coach classes
+  try {
+    const prediction = await processPNRPrediction('4781290354', true);
+    const classCodes = prediction.routeTrends?.classBenchmarks.map((benchmark) => benchmark.classCode) ?? [];
+    testResults.push({
+      name: 'Lalbagh Express Coach Classes',
+      category: 'Train Data',
+      passed: classCodes.length === 2 && classCodes.includes('2S') && classCodes.includes('CC'),
+      details: `Lalbagh Express classes: ${classCodes.join(', ')}`
+    });
+  } catch (err: unknown) {
+    testResults.push({
+      name: 'Lalbagh Express Coach Classes',
+      category: 'Train Data',
+      passed: false,
+      details: err instanceof Error ? err.message : 'Unknown error'
+    });
+  }
+
+  // Test 9: ML Prediction Probability Bounds
+  try {
+    const pred = await processPNRPrediction('4218765430', true);
     const validBounds = pred.probability >= 0 && pred.probability <= 100;
     testResults.push({
       name: 'ML Probability Bounds (0 - 100%)',
@@ -354,9 +593,9 @@ apiRouter.get('/tests/run', async (_req: Request, res: Response) => {
     });
   }
 
-  // Test 6: Explainability Attribution Generation
+  // Test 10: Explainability Attribution Generation
   try {
-    const pred = await processPNRPrediction('4523891024', true);
+    const pred = await processPNRPrediction('4218765430', true);
     const hasFactors = pred.explanation.positiveFactors.length > 0 || pred.explanation.negativeFactors.length > 0;
     testResults.push({
       name: 'Explainable AI Factor Attributions',
@@ -457,4 +696,3 @@ apiRouter.post('/notifications/test', (req: Request, res: Response): void => {
     message: `Simulated status alert sent to ${result.alert.recipient}`
   });
 });
-
