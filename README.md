@@ -48,6 +48,14 @@ RailPredict AI is designed around strict legal, security, and ethical standards:
 
 ---
 
+## Deploy the Website
+
+The app includes an Express API, so GitHub Pages cannot host the complete working application. To publish a live website, open the [Render Blueprint](https://dashboard.render.com/blueprint/new?repo=https://github.com/Poojith-24/RAIL-AI), sign in to Render, and create the service from this repository. The `render.yaml` blueprint builds the app and starts its Node.js web server in Demo Mode.
+
+After Render finishes deployment, copy the service's public `onrender.com` URL into the GitHub repository's **About → Website** field so visitors can open the app from GitHub. For real railway lookups, configure `DATA_SOURCE_MODE=LIVE`, `RAILWAY_API_BASE_URL`, and `RAILWAY_API_KEY` under the Render service's environment settings using credentials from an authorized railway data provider. Never commit API keys to GitHub.
+
+---
+
 ## 3. Machine Learning Models & Zero Data Leakage
 
 ### A. Anti-Leakage Protocol
