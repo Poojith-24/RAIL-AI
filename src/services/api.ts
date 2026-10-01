@@ -1,7 +1,8 @@
 import {
   PredictionResult,
   SamplePNR,
-  ProviderStatus
+  ProviderStatus,
+  CentralTrainClassInfo
 } from '../types';
 
 export async function readJsonResponse<T>(response: Response): Promise<T> {
@@ -53,4 +54,17 @@ export async function fetchSamplePNRs(): Promise<SamplePNR[]> {
 export async function fetchProviderStatus(): Promise<ProviderStatus> {
   const res = await fetch('/api/provider/status');
   return readJsonResponse<ProviderStatus>(res);
+}
+
+export async function fetchTrainClasses(
+  trainNumber: string,
+  trainName = '',
+  travelClass = ''
+): Promise<CentralTrainClassInfo> {
+  const params = new URLSearchParams();
+  if (trainName) params.append('trainName', trainName);
+  if (travelClass) params.append('class', travelClass);
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const res = await fetch(`/api/trains/${encodeURIComponent(trainNumber)}/classes${query}`);
+  return readJsonResponse<CentralTrainClassInfo>(res);
 }

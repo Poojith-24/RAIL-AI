@@ -1,6 +1,6 @@
 export type WaitlistType = 'GNWL' | 'RLWL' | 'PQWL' | 'CKWL' | 'RAC' | 'CNF' | 'OTHER';
 
-export type TravelClass = '1A' | '2A' | '3A' | '3E' | 'SL' | 'CC' | 'EC' | '2S';
+export type TravelClass = '1A' | '2A' | '3A' | '3E' | 'SL' | 'CC' | 'EC' | '2S' | '3C' | '2C' | '1C' | 'EA' | 'FC' | 'EV' | 'VS' | string;
 
 export type QuotaCode = 'GN' | 'TQ' | 'PT' | 'LD' | 'SS' | 'DF' | 'FT' | 'RL' | 'PQ';
 
@@ -39,6 +39,7 @@ export interface PNRStatus {
   distanceKm: number;
   expectedDepartureTime: string;
   passengers: PassengerStatus[];
+  availableClasses?: string[];
   dataSource: 'LIVE' | 'DEMO';
   providerName: string;
   fetchedAt: string;
@@ -100,9 +101,19 @@ export interface RouteDayOfWeekTrend {
 export interface RouteClassBenchmark {
   classCode: string;
   className: string;
-  clearanceRate: number;
-  typicalWlThreshold: number;
+  availability: boolean;
+  clearanceRate: number | null;
+  typicalWlThreshold: number | null;
+  historicalDataAvailable: boolean;
   isCurrentClass?: boolean;
+}
+
+export interface CentralTrainClassInfo {
+  trainNumber: string;
+  trainName: string;
+  availableClasses: RouteClassBenchmark[];
+  source: 'OFFICIAL_REGISTRY' | 'LIVE_RAILWAY_API' | 'PRS_DYNAMIC';
+  lastUpdated: string;
 }
 
 export interface RouteHistoricalTrend {

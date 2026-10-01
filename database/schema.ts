@@ -64,6 +64,7 @@ export interface DbTrainData {
   distance_km: number;
   historical_confirmation_rate: number;
   total_tracked_bookings: number;
+  classes?: string[];
 }
 
 export interface DbStationData {

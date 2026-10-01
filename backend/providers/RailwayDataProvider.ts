@@ -1056,6 +1056,40 @@ export const SAMPLE_PNR_DATABASE: Record<string, Omit<PNRStatus, 'dataSource' | 
       currentPosition: 79,
       currentType: 'GNWL'
     }]
+  },
+
+  // 31. Pune to Mumbai CSMT - Deccan Intercity Special (SL, 3C, 2C, 1C Composition)
+  '7123456789': {
+    pnr: '7123456789',
+    trainNumber: '12099',
+    trainName: 'Deccan Intercity Special Express',
+    journeyDate: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0],
+    bookingDate: new Date(Date.now() - 10 * 86400000).toISOString().split('T')[0],
+    fromStationCode: 'PUNE',
+    fromStationName: 'Pune Junction',
+    toStationCode: 'CSMT',
+    toStationName: 'Mumbai CSMT',
+    boardingStationCode: 'PUNE',
+    boardingStationName: 'Pune Junction',
+    destinationStationCode: 'CSMT',
+    destinationStationName: 'Mumbai CSMT',
+    class: '3C',
+    quota: 'GN',
+    chartStatus: 'CHART_NOT_PREPARED',
+    distanceKm: 192,
+    expectedDepartureTime: '07:15 AM',
+    availableClasses: ['SL', '3C', '2C', '1C'],
+    passengers: [
+      {
+        passengerNumber: 1,
+        bookingStatus: 'GNWL 14',
+        bookingPosition: 14,
+        bookingType: 'GNWL',
+        currentStatus: 'RAC 3',
+        currentPosition: 3,
+        currentType: 'RAC'
+      }
+    ]
   }
 };
 
@@ -1238,6 +1272,17 @@ export class AuthorizedRailwayProvider implements RailwayDataProvider {
       };
     });
 
+    // Extract available classes if provided in API response
+    const rawClasses = root.availableClasses || root.available_classes || root.classes || root.classList || root.train_classes || root.coaches;
+    let availableClasses: string[] | undefined;
+    if (Array.isArray(rawClasses) && rawClasses.length > 0) {
+      availableClasses = Array.from(new Set(
+        rawClasses
+          .map((c: any) => String(typeof c === 'string' ? c : c.classCode || c.code || c.class || '').trim().toUpperCase())
+          .filter((c: string) => Boolean(c) && c.length <= 4)
+      ));
+    }
+
     return {
       pnr,
       trainNumber: String(root.trainNumber || root.train_number || root.TrainNo || 'UNKNOWN'),
@@ -1260,6 +1305,7 @@ export class AuthorizedRailwayProvider implements RailwayDataProvider {
       distanceKm: Number(root.distance || root.distanceKm || root.Distance || 850),
       expectedDepartureTime: root.departureTime || root.expectedDepartureTime || root.DepartureTime || '12:00',
       passengers,
+      availableClasses,
       dataSource: 'LIVE',
       providerName: this.providerName,
       fetchedAt: new Date().toISOString()

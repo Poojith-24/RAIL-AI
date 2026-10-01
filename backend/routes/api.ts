@@ -17,6 +17,7 @@ import {
 } from '../../ml/dataset.js';
 import { storage } from '../services/storage.js';
 import { notificationService } from '../services/notificationService.js';
+import { getCentralTrainClassInfo } from '../services/trainClassService.js';
 
 export const apiRouter = express.Router();
 
@@ -316,9 +317,29 @@ apiRouter.get('/pnr/samples', (_req: Request, res: Response) => {
       region: 'Tamil Nadu',
       expectedCategory: 'LOW',
       badge: 'Tamil Nadu route'
+    },
+    {
+      pnr: '7123456789',
+      title: 'Deccan Intercity Special Express',
+      scenario: 'Pune (PUNE) → Mumbai (CSMT) | Classes SL, 3C, 2C, 1C | GNWL 14 → RAC 3',
+      region: 'Central Railway',
+      expectedCategory: 'HIGH',
+      badge: 'SL, 3C, 2C, 1C Composition'
     }
   ];
   res.json(samples);
+});
+
+/**
+ * GET /api/trains/:trainNumber/classes
+ * Centralized train-class mapping system endpoint
+ */
+apiRouter.get('/trains/:trainNumber/classes', (req: Request, res: Response) => {
+  const { trainNumber } = req.params;
+  const trainName = typeof req.query.trainName === 'string' ? req.query.trainName : '';
+  const bookedClass = typeof req.query.class === 'string' ? req.query.class : '';
+  const trainClassInfo = getCentralTrainClassInfo(trainNumber, trainName, bookedClass);
+  res.json(trainClassInfo);
 });
 
 /**
@@ -542,7 +563,7 @@ apiRouter.get('/tests/run', asyncRoute(async (_req, res) => {
   testResults.push({
     name: 'Distinct Curated Demo PNR Predictions',
     category: 'ML Prediction',
-    passed: demoProbabilities.length === 30 && demoCategories.size === 3 && distinctDemoProbabilities.size >= 10,
+    passed: demoProbabilities.length >= 30 && demoCategories.size === 3 && distinctDemoProbabilities.size >= 10,
     details: `${distinctDemoProbabilities.size} distinct probabilities across ${demoCategories.size} outcome categories for ${demoProbabilities.length} PNRs`
   });
 
@@ -615,6 +636,70 @@ apiRouter.get('/tests/run', asyncRoute(async (_req, res) => {
       category: 'Explainability',
       passed: false,
       details: err.message
+    });
+  }
+
+  // Test 11: Train-Specific Coach Class Mapping (No Generic Class Assumption)
+  try {
+    // 1. Deccan Intercity with SL, 3C, 2C, 1C
+    const deccanPred = await processPNRPrediction('7123456789', true);
+    const deccanClasses = deccanPred.routeTrends?.classBenchmarks.map(b => b.classCode) || [];
+    const deccanMatches = deccanClasses.length === 4 &&
+      deccanClasses.includes('SL') &&
+      deccanClasses.includes('3C') &&
+      deccanClasses.includes('2C') &&
+      deccanClasses.includes('1C') &&
+      !deccanClasses.includes('CC') &&
+      !deccanClasses.includes('1A');
+
+    // 2. Vande Bharat with strictly CC and EC (NO SL, NO 1A)
+    const vbPred = await processPNRPrediction('4329871265', true);
+    const vbClasses = vbPred.routeTrends?.classBenchmarks.map(b => b.classCode) || [];
+    const vbMatches = vbClasses.length === 2 &&
+      vbClasses.includes('CC') &&
+      vbClasses.includes('EC') &&
+      !vbClasses.includes('SL') &&
+      !vbClasses.includes('1A');
+
+    // 3. Pandian Superfast (12637) with NO CC
+    const pandianPred = await processPNRPrediction('4218765430', true);
+    const pandianClasses = pandianPred.routeTrends?.classBenchmarks.map(b => b.classCode) || [];
+    const pandianMatches = !pandianClasses.includes('CC') && pandianClasses.includes('SL');
+
+    const test11Passed = Boolean(deccanMatches && vbMatches && pandianMatches);
+    testResults.push({
+      name: 'Dynamic Train-Specific Coach Class Isolation',
+      category: 'Train Data',
+      passed: test11Passed,
+      details: `Deccan: [${deccanClasses.join(', ')}], Vande Bharat: [${vbClasses.join(', ')}], Pandian: [${pandianClasses.join(', ')}]`
+    });
+  } catch (err: unknown) {
+    testResults.push({
+      name: 'Dynamic Train-Specific Coach Class Isolation',
+      category: 'Train Data',
+      passed: false,
+      details: err instanceof Error ? err.message : 'Unknown error'
+    });
+  }
+
+  // Test 12: Passenger Selected Class Highlighting & Missing Benchmark Handling
+  try {
+    const pred = await processPNRPrediction('7123456789', true);
+    const selectedBenchmark = pred.routeTrends?.classBenchmarks.find(b => b.isCurrentClass);
+    const hasHighlight = Boolean(selectedBenchmark && selectedBenchmark.classCode === '3C');
+
+    testResults.push({
+      name: 'Passenger Selected Class Highlighting & Verification',
+      category: 'Train Data',
+      passed: hasHighlight,
+      details: `Selected class ${pred.pnrData.class} correctly highlighted: ${selectedBenchmark?.className || 'None'}`
+    });
+  } catch (err: unknown) {
+    testResults.push({
+      name: 'Passenger Selected Class Highlighting & Verification',
+      category: 'Train Data',
+      passed: false,
+      details: err instanceof Error ? err.message : 'Unknown error'
     });
   }
 

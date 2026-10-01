@@ -236,45 +236,64 @@ export const RouteHistoricalTrends: React.FC<RouteHistoricalTrendsProps> = ({
               <Layers className="w-4 h-4 text-blue-600" />
               {t('trends.classBenchmarks')} ({routeTrends.trainNumber})
             </h4>
+            <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+              {routeTrends.classBenchmarks.length} {routeTrends.classBenchmarks.length === 1 ? 'Class' : 'Classes'}
+            </span>
           </div>
           <p className="text-[11px] text-slate-500 leading-relaxed">
-            Historical maximum waitlist position that cleared across travel classes on this sector.
+            Historical maximum waitlist position that cleared across available travel classes on this train.
           </p>
 
           <div className="space-y-2 pt-1">
-            {routeTrends.classBenchmarks.map((cls, idx) => (
-              <div
-                key={idx}
-                className={`p-2.5 rounded-xl flex items-center justify-between border text-xs transition-all ${
-                  cls.isCurrentClass
-                    ? 'bg-blue-50/70 border-blue-300 ring-1 ring-blue-300 font-bold text-slate-900'
-                    : 'bg-slate-50/50 border-slate-200 text-slate-700'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`font-mono px-2 py-0.5 rounded text-xs font-bold ${
-                    cls.isCurrentClass ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'
-                  }`}>
-                    {cls.classCode}
-                  </span>
-                  <span className="text-slate-800">{cls.className}</span>
-                  {cls.isCurrentClass && (
-                    <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">
-                      Your Class
+            {routeTrends.classBenchmarks && routeTrends.classBenchmarks.length > 0 ? (
+              routeTrends.classBenchmarks.map((cls, idx) => (
+                <div
+                  key={`${cls.classCode}-${idx}`}
+                  className={`p-2.5 rounded-xl flex items-center justify-between border text-xs transition-all gap-2 ${
+                    cls.isCurrentClass
+                      ? 'bg-blue-50/70 border-blue-300 ring-1 ring-blue-300 font-bold text-slate-900 shadow-2xs'
+                      : 'bg-slate-50/50 border-slate-200 text-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span className={`font-mono px-2 py-0.5 rounded text-xs font-bold shrink-0 ${
+                      cls.isCurrentClass ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'
+                    }`}>
+                      {cls.classCode}
                     </span>
-                  )}
-                </div>
+                    <span className="text-slate-800 font-medium truncate" title={cls.className}>
+                      {cls.className}
+                    </span>
+                    {cls.isCurrentClass && (
+                      <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">
+                        Your Class
+                      </span>
+                    )}
+                  </div>
 
-                <div className="flex items-center gap-3 font-mono">
-                  <span className="text-slate-500 text-[11px]">
-                    Max Cleared: <strong className="text-slate-800">WL {cls.typicalWlThreshold}</strong>
-                  </span>
-                  <span className="text-emerald-700 font-bold">
-                    {cls.clearanceRate}% CNF
-                  </span>
+                  <div className="flex items-center gap-2 sm:gap-3 font-mono shrink-0 ml-1 text-right">
+                    {cls.historicalDataAvailable && cls.clearanceRate !== null && cls.typicalWlThreshold !== null ? (
+                      <>
+                        <span className="text-slate-500 text-[11px] hidden sm:inline whitespace-nowrap">
+                          Max Cleared: <strong className="text-slate-800">WL {cls.typicalWlThreshold}</strong>
+                        </span>
+                        <span className="text-emerald-700 font-bold whitespace-nowrap">
+                          {cls.clearanceRate}% CNF
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-slate-400 italic text-[11px] whitespace-nowrap">
+                        Historical data unavailable
+                      </span>
+                    )}
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-500 italic text-center">
+                Coach class data unavailable for this train
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

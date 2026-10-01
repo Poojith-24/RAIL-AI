@@ -9,6 +9,7 @@ import {
 } from '../../database/schema.js';
 import { PNRStatus, PredictionResult } from '../types/railway.js';
 import { HISTORICAL_TRAIN_STATS, HISTORICAL_ROUTE_STATS } from '../../ml/dataset.js';
+import { resolveAvailableClassCodesForTrain } from './trainClassService.js';
 
 /**
  * SHA-256 Hasher for sensitive identifiers
@@ -57,6 +58,7 @@ class InAppStorageService {
     // Seed train statistics
     for (const [tNum, info] of Object.entries(HISTORICAL_TRAIN_STATS)) {
       if (tNum === 'DEFAULT') continue;
+      const { classCodes } = resolveAvailableClassCodesForTrain(tNum, info.name);
       this.trainData.set(tNum, {
         train_number: tNum,
         train_name: info.name,
@@ -65,7 +67,8 @@ class InAppStorageService {
         dest_station: 'DST',
         distance_km: 1200,
         historical_confirmation_rate: info.rate,
-        total_tracked_bookings: info.total
+        total_tracked_bookings: info.total,
+        classes: classCodes
       });
     }
 

@@ -5,6 +5,7 @@ import { GradientBoostedEnsemble, LogisticRegressionBaseline } from '../../ml/mo
 import { explainPrediction } from '../../ml/explainability.js';
 import { storage } from './storage.js';
 import { getTrainScheduleAndStops } from './trainScheduleService.js';
+import { buildTrainClassBenchmarks } from './trainClassService.js';
 
 const mainModel = new GradientBoostedEnsemble();
 const baselineModel = new LogisticRegressionBaseline();
@@ -203,71 +204,10 @@ export async function processPNRPrediction(rawPnr: string, forceDemo = false): P
     };
   });
 
-  // Class benchmarks tailored strictly to the actual train type
+  // Class benchmarks tailored strictly to the actual train and its available classes
+  const { benchmarks: classBenchmarks } = buildTrainClassBenchmarks(pnrData);
   const trainNameLower = pnrData.trainName.toLowerCase();
   const isVandeBharat = trainNameLower.includes('vande bharat') || ['20608', '20643', '20901', '22436', '20607', '20644'].includes(pnrData.trainNumber);
-  const isLalbagh = trainNameLower.includes('lalbagh') || ['12607', '12608'].includes(pnrData.trainNumber);
-  const isShatabdi = trainNameLower.includes('shatabdi') && !trainNameLower.includes('jan');
-  const isJanShatabdi = trainNameLower.includes('jan shatabdi');
-  const isRajdhani = trainNameLower.includes('rajdhani') || trainNameLower.includes('tejas');
-
-  let classList: Array<{ classCode: string; className: string; clearanceRate: number; typicalWlThreshold: number }>;
-
-  if (isLalbagh) {
-    classList = [
-      { classCode: '2S', className: 'Second Sitting', clearanceRate: 72, typicalWlThreshold: 45 },
-      { classCode: 'CC', className: 'AC Chair Car', clearanceRate: 80, typicalWlThreshold: 30 }
-    ];
-  } else if (isVandeBharat) {
-    // Vande Bharat Express operates strictly with AC Chair Car (CC) and Executive Class (EC)
-    classList = [
-      { classCode: 'CC', className: 'AC Chair Car', clearanceRate: 86, typicalWlThreshold: 35 },
-      { classCode: 'EC', className: 'Executive Chair Car', clearanceRate: 72, typicalWlThreshold: 12 }
-    ];
-  } else if (isShatabdi) {
-    // Shatabdi Express operates strictly with CC and EC coaches
-    classList = [
-      { classCode: 'CC', className: 'AC Chair Car', clearanceRate: 84, typicalWlThreshold: 32 },
-      { classCode: 'EC', className: 'Executive Chair Car', clearanceRate: 70, typicalWlThreshold: 10 }
-    ];
-  } else if (isJanShatabdi) {
-    // Jan Shatabdi operates strictly with 2S and CC coaches
-    classList = [
-      { classCode: '2S', className: 'Second Sitting', clearanceRate: 78, typicalWlThreshold: 60 },
-      { classCode: 'CC', className: 'AC Chair Car', clearanceRate: 82, typicalWlThreshold: 28 }
-    ];
-  } else if (isRajdhani) {
-    // Rajdhani / Tejas operates strictly with AC Sleeper: 1A, 2A, 3A, 3E (No SL, No CC)
-    classList = [
-      { classCode: '1A', className: 'First AC (Coupe/Cabin)', clearanceRate: 90, typicalWlThreshold: 6 },
-      { classCode: '2A', className: 'Second AC', clearanceRate: 76, typicalWlThreshold: 20 },
-      { classCode: '3A', className: 'Third AC', clearanceRate: 83, typicalWlThreshold: 48 },
-      { classCode: '3E', className: 'AC 3 Economy', clearanceRate: 81, typicalWlThreshold: 52 }
-    ];
-  } else {
-    // Standard Express / Superfast coaches
-    classList = [
-      { classCode: '1A', className: 'First AC', clearanceRate: 88, typicalWlThreshold: 6 },
-      { classCode: '2A', className: 'Second AC', clearanceRate: 74, typicalWlThreshold: 18 },
-      { classCode: '3A', className: 'Third AC', clearanceRate: 82, typicalWlThreshold: 45 },
-      { classCode: 'SL', className: 'Sleeper Class', clearanceRate: 61, typicalWlThreshold: 75 }
-    ];
-
-    // Ensure the booked class is present if it's CC or 2S
-    if (!classList.some(c => c.classCode === pnrData.class)) {
-      classList.push({
-        classCode: pnrData.class,
-        className: pnrData.class === 'CC' ? 'AC Chair Car' : pnrData.class === '2S' ? 'Second Sitting' : pnrData.class,
-        clearanceRate: 80,
-        typicalWlThreshold: 30
-      });
-    }
-  }
-
-  const classBenchmarks = classList.map(c => ({
-    ...c,
-    isCurrentClass: c.classCode === pnrData.class
-  }));
 
   const historicalInsights = [
     `On the ${pnrData.fromStationName} (${pnrData.fromStationCode}) to ${pnrData.toStationName} (${pnrData.toStationCode}) corridor, historical records show that ${baseRouteRate}% of tickets starting with a waitlist under WL 35 confirm by chart preparation.`,
